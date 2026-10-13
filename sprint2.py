@@ -30,12 +30,12 @@ SEED = 42
 def carregar_dados(usar_mnist: bool):
     if usar_mnist:
         X, y = fetch_openml("mnist_784", version=1, return_X_y=True, as_frame=False)
-        y = y.astype(int)
-        X = X / 255.0
+        y = np.asarray(y).astype(int)
+        X = np.asarray(X) / 255.0
         nome = "MNIST (28x28, 70.000 amostras)"
     else:
         X, y = load_digits(return_X_y=True)
-        X = X / 16.0  # pixels vão de 0 a 16
+        X = np.asarray(X) / 16.0  # pixels vão de 0 a 16
         nome = "sklearn load_digits (8x8, 1.797 amostras)"
     return X, y, nome
 

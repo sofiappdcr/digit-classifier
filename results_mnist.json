@@ -1,0 +1,21 @@
+{
+  "dataset": "MNIST (28x28, 70,000 samples)",
+  "n_train": 56000,
+  "n_test": 14000,
+  "logistic_regression": {
+    "acc_train": 0.9448214285714286,
+    "acc_test": 0.9165714285714286,
+    "time_s": 3.377224922180176,
+    "mean_5_splits": 0.9167571428571428,
+    "std_5_splits": 0.002042207688972411
+  },
+  "neural_network": {
+    "acc_train": 1.0,
+    "acc_test": 0.9705714285714285,
+    "time_s": 6.463451862335205,
+    "architecture": "input -> 64 (ReLU) -> 10 (softmax)",
+    "epochs": 52,
+    "mean_5_splits": 0.9705285714285715,
+    "std_5_splits": 0.002098395888797553
+  }
+}

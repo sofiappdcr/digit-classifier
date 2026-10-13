@@ -1,0 +1,21 @@
+{
+  "dataset": "sklearn load_digits (8x8, 1.797 amostras)",
+  "n_treino": 1437,
+  "n_teste": 360,
+  "regressao_logistica": {
+    "acc_treino": 0.9993041057759221,
+    "acc_teste": 0.9722222222222222,
+    "tempo_s": 0.01526498794555664,
+    "media_5_divisoes": 0.9705555555555556,
+    "desvio_5_divisoes": 0.006478835438716977
+  },
+  "rede_neural": {
+    "acc_treino": 1.0,
+    "acc_teste": 0.9805555555555555,
+    "tempo_s": 0.23048996925354004,
+    "arquitetura": "entrada -> 64 (ReLU) -> 10 (softmax)",
+    "epocas": 165,
+    "media_5_divisoes": 0.975,
+    "desvio_5_divisoes": 0.0030429030972509118
+  }
+}

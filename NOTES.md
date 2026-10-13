@@ -15,12 +15,21 @@
 
 ## Sprint 2: training the 1st model.
 **What was done:** 
-1. load_digits: first data set used, 8x8 images and 1797 of them, but only 1437 used for training (80%), while the other 20% was used for testing.
+1. load_digits: first data set used, 8x8 images and 1,797 of them, but only 1,437 (80%) used for training, while the other 20% (360) was used for testing.
+
 ->logistic regression: accuracy of 97.22% (test) (99.93%-training)and 0.0s of training.
 (mean of 5 tests: 0.9706 ± 0.0065).
 ->neural network: accuracy of 98,06% (test) (100%-training) and 0.2s of training.
 (mean of 5 tests: 0.9750 ± 0.0030).
 ->conclusion: tie, with a slight advantage for the neural network.
+
+2. MNIST: second data set used, 28x28 images and 70,000 of them, but only 56,000 (80%) used for training, while the other 20% (14.000) was used for testing.
+
+->logistic regression: accuracy of 91.66% (test) (94.48%-training) and 3.4s of training.
+(mean of 5 tests: 0.9168 ± 0.0020).
+->neural network: accuracy of 97.06% (test) (100%-training) and 6.5s of training.
+(mean of 5 tests: 0.9705 ± 0.0021).
+->conclusion: noticeably, the neural network presented better results when comparing to the logistic regression.
 
 **What was learned:**
 -Logistic Regression: it is a neural network with no hidden layers (ex of a hidden layer: one with 64 neurons that identifies curves and lines, in this case). it is fast to train, because it has few parameters. it is a linear function.

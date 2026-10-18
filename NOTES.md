@@ -37,8 +37,9 @@
 -The hidden layer and the non-linearity presented by ReLU is what gives the neural network the hability to learn patterns that logistic regression can't.
 -Expectation: neural network has better accuracy than logistic regression (better seen with the MNIST data set).
 
-## Sprint 3: training curve plotting.
-**What was done:** the network was trained one epoch at a time and each metrics were recorded after each epoch and plotted in a chart.
+## Sprint 3: training curve plotting, confusion matrix and .
+**What was done:** 
+1. TASK 1: the network was trained one epoch at a time and each metrics were recorded after each epoch and plotted in a chart.
 ->(8x8, 1,797 samples) | Train: 1077 | Validation: 360 | Test: 360
     Baseline (64) -> val accuracy = 97.5%, time=0.2s. # baseline accuracy is higher than final validation, because baseline stops only at epoch 177 (the loss stopped improving), whilst the other stops at 100 epochs. the gap is 3 images out of 360, which is within noise.
     Final train acc = 99.91%.
@@ -47,6 +48,7 @@
 ->chart interpretation:
     -loss dropped fast then flattened out.
     -both training and validation were high and close together, meaning the training worked well, with slight overfitting.
+2. TASK 2: the confusion matrix was made using the baseline model (177 epoches).
 
 **What was learned:**
 -Each full pass over the training data is called an _epoch_.

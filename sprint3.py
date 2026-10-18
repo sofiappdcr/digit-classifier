@@ -8,7 +8,7 @@ matplotlib.use("Agg")  # saves figures to files without opening a window
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.datasets import fetch_openml, load_digits
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
@@ -46,10 +46,11 @@ def split_data(X, y):
     )
     # Fit the scaler on train only, then apply it to the other two sets
     scaler = StandardScaler().fit(X_tr)
-    return (
+    data = (
         scaler.transform(X_tr), scaler.transform(X_val), scaler.transform(X_te),
         y_tr, y_val, y_te,
     )
+    return data, scaler  # the scaler is returned so we can undo it to draw images
 
 
 def train_model(data, hidden_layers=(64,), lr=0.001, alpha=0.0001, max_iter=300):
@@ -86,9 +87,6 @@ def train_with_history(data, hidden_layers=(64,), lr=0.001, alpha=0.0001, epochs
         alpha=alpha,
         random_state=SEED,
     )
-    # train_loss: the "error" the network is trying to reduce.
-    # train_acc: % correct on the training set.
-    # val_acc: % correct on the validation set.
     classes = np.unique(y_tr)
     history = {"train_loss": [], "train_acc": [], "val_acc": []}
     for _ in range(epochs):
@@ -96,10 +94,9 @@ def train_with_history(data, hidden_layers=(64,), lr=0.001, alpha=0.0001, epochs
         history["train_loss"].append(model.loss_)
         history["train_acc"].append(accuracy_score(y_tr, model.predict(X_tr)))
         history["val_acc"].append(accuracy_score(y_val, model.predict(X_val)))
-    # at the end, the function returns the model and the history, with 100 values in each list, one per epoch.
     return model, history
 
-# draws two charts side by side-left: the loss per epoch. right: training and validation accuracy together, for comparison.
+
 def plot_training_curves(history, path, title="Training curves"):
     """Left: train loss per epoch. Right: train vs validation accuracy per epoch."""
     epochs = range(1, len(history["train_loss"]) + 1)
@@ -125,6 +122,49 @@ def plot_training_curves(history, path, title="Training curves"):
     plt.close(fig)
 
 
+def plot_confusion_matrix(y_true, y_pred, path, title="Confusion matrix"):
+    """Rows = real digit, columns = predicted digit. Off-diagonal cells are errors."""
+    fig, ax = plt.subplots(figsize=(6, 5))
+    ConfusionMatrixDisplay.from_predictions(
+        y_true, y_pred, ax=ax, colorbar=False, cmap="Blues"
+    )
+    ax.set_title(title)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+def top_confusions(y_true, y_pred, k=3):
+    """Return the k most frequent mistakes as (real, predicted, count)."""
+    cm = confusion_matrix(y_true, y_pred)
+    np.fill_diagonal(cm, 0)  # ignore correct predictions
+    order = np.argsort(cm, axis=None)[::-1][:k]  # largest cells first
+    result = []
+    for idx in order:
+        real, pred = divmod(int(idx), cm.shape[1])
+        if cm[real, pred] > 0:
+            result.append((real, pred, int(cm[real, pred])))
+    return result
+
+
+def plot_errors(X, y_true, y_pred, path, n=12):
+    """Save a grid with images the model got wrong (real digit / predicted digit)."""
+    wrong = np.flatnonzero(y_true != y_pred)[:n]
+    if len(wrong) == 0:
+        return
+    side = int(np.sqrt(X.shape[1]))  # 8 for load_digits, 28 for MNIST
+    fig, axes = plt.subplots(2, 6, figsize=(12, 6))
+    for ax in axes.ravel():
+        ax.axis("off")
+    for ax, i in zip(axes.ravel(), wrong):
+        ax.imshow(X[i].reshape(side, side), cmap="gray_r")
+        ax.set_title(f"real {y_true[i]} / pred {y_pred[i]}", fontsize=10)
+    fig.suptitle("Validation images the model got wrong")
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mnist", action="store_true")
@@ -133,16 +173,16 @@ def main():
     RESULTS_DIR.mkdir(exist_ok=True)
 
     X, y, dataset_name = load_data(args.mnist)
-    data = split_data(X, y)
+    data, scaler = split_data(X, y)
     X_tr, X_val, X_te, *_ = data
     print(f"Dataset: {dataset_name}")
     print(f"Train: {len(X_tr)} | Validation: {len(X_val)} | Test: {len(X_te)}\n")
 
-    # the baseline (same config as Sprint 2) on the validation set
+    # the baseline on the validation set.
     model, seconds = train_model(data)
     print(f"Baseline (64) -> val accuracy={val_accuracy(model, data):.4f}  time={seconds:.1f}s")
 
-    # training curves for the baseline
+    # TASK 1: training curves for the baseline.
     _, history = train_with_history(data, hidden_layers=(64,), epochs=100)
     plot_training_curves(history, RESULTS_DIR / "training_curve.png", "Baseline (64)")
     best = int(np.argmax(history["val_acc"]))
@@ -152,6 +192,22 @@ def main():
         f"best val acc={history['val_acc'][best]:.4f} (epoch {best + 1})"
     )
     print("Saved results/training_curve.png")
+
+    # TASK 2: confusion matrix of the baseline on the VALIDATION set (test stays locked).
+    # plot_confusion_matrix: draws the matrix.
+    # top_confusions: lists the most frequent mistakes.
+    # plot_errors: draws the images the model got wrong.
+    y_val = data[4]
+    y_pred = model.predict(X_val)
+    plot_confusion_matrix(y_val, y_pred, RESULTS_DIR / "confusion_matrix.png", "Baseline (64) - validation")
+    X_val_raw = scaler.inverse_transform(X_val)  # back to the original pixel values
+    plot_errors(X_val_raw, y_val, y_pred, RESULTS_DIR / "wrong_examples.png")
+    n_wrong = int((y_val != y_pred).sum())
+    print(f"\nTask 2 -> {n_wrong} wrong out of {len(y_val)} validation images")
+    print("Most confused pairs (real -> predicted : count):")
+    for real, pred, count in top_confusions(y_val, y_pred):
+        print(f"  {real} -> {pred} : {count}")
+    print("Saved results/confusion_matrix.png and results/wrong_examples.png")
 
 
 if __name__ == "__main__":

@@ -49,6 +49,16 @@
     -loss dropped fast then flattened out.
     -both training and validation were high and close together, meaning the training worked well, with slight overfitting.
 2. TASK 2: the confusion matrix was made using the baseline model (177 epoches).
+->9 errors/360 (97.5% from baseline).
+predicted/real: 1/9 (twice); 5/6 (once); 4/8 (once); 7/2 (once); 5/8 (once); 0/4 (once); 1/6 (once); 1/2 (once).
+3. TASK 3: experiments.md was created with 10 experiments, each one changing one thing from the baseline.
+-> _lower learning rate_ was clearly worse (95%).
+-> _more neurons (256)_ helped a little. it was the best model (98.43% on val) by comparison, but only 0.6 points above the baseline.
+-> _too few neurons (32)_ hurt by 1 point.
+-> _two layers_ did not help. the problem is probably simple enough that one layer is plenty.
+-> _regularization_ had almost no effect.
+-> _every row reaches 100% train accuracy_ (except the slow one), so all of them overfit a little.
+->**Final Result**: the model chosen by validation was the one with 256 neurons. on the test set it got 97.78% (352/360, only 8 wrong).
 
 **What was learned:**
 -Each full pass over the training data is called an _epoch_.
@@ -58,3 +68,4 @@
 1. close together and high-the model learned and generalizes well.
 2. train high and validation well below-overfitting, meaning the model is memorizing.
 3. both low-the model is too simple or was trained too little.
+-_regularization_ is a defense against overfitting.

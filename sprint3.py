@@ -1,5 +1,6 @@
 import argparse
 import time
+import warnings
 from pathlib import Path
 
 import matplotlib
@@ -8,6 +9,7 @@ matplotlib.use("Agg")  # saves figures to files without opening a window
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.datasets import fetch_openml, load_digits
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
@@ -53,7 +55,7 @@ def split_data(X, y):
     return data, scaler  # the scaler is returned so we can undo it to draw images
 
 
-def train_model(data, hidden_layers=(64,), lr=0.001, alpha=0.0001, max_iter=300):
+def train_model(data, hidden_layers=(64,), lr=0.001, alpha=0.0001, max_iter=300, seed=SEED):
     """Train one MLP with the given configuration. Returns (model, seconds)."""
     X_tr, _, _, y_tr, _, _ = data
     model = MLPClassifier(
@@ -62,10 +64,13 @@ def train_model(data, hidden_layers=(64,), lr=0.001, alpha=0.0001, max_iter=300)
         alpha=alpha,
         max_iter=max_iter,
         early_stopping=False,
-        random_state=SEED,
+        random_state=seed,
     )
     t0 = time.time()
-    model.fit(X_tr, y_tr)
+    with warnings.catch_warnings():
+        # a run that hits max_iter without converging is a result, not an error
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        model.fit(X_tr, y_tr)
     return model, time.time() - t0
 
 
@@ -165,9 +170,76 @@ def plot_errors(X, y_true, y_pred, path, n=12):
     plt.close(fig)
 
 
+# Task 3: each experiment changes ONE thing compared to the baseline.
+BASELINE_CONFIG = {"hidden_layers": (64,), "lr": 0.001, "alpha": 0.0001}
+EXPERIMENTS = [
+    ("Baseline (64)", {}),
+    ("Fewer neurons (32)", {"hidden_layers": (32,)}),
+    ("More neurons (128)", {"hidden_layers": (128,)}),
+    ("More neurons (256)", {"hidden_layers": (256,)}),
+    ("Two layers (64, 64)", {"hidden_layers": (64, 64)}),
+    ("Two layers (128, 64)", {"hidden_layers": (128, 64)}),
+    ("Lower learning rate (0.0001)", {"lr": 0.0001}),
+    ("Higher learning rate (0.01)", {"lr": 0.01}),
+    ("Regularization alpha=0.01", {"alpha": 0.01}),
+    ("Regularization alpha=0.1", {"alpha": 0.1}),
+]
+EXPERIMENT_SEEDS = (42, 1, 2)  # same data split, 3 different random initializations
+
+
+def run_experiment(data, name, changes):
+    """Train one configuration with several seeds and average the results.
+
+    With only 360 validation images, one image is ~0.28 points, so a single run
+    can differ from another just by luck. Averaging 3 seeds makes it fairer.
+    """
+    config = {**BASELINE_CONFIG, **changes}
+    X_tr, _, _, y_tr, _, _ = data
+    vals, trains, times, iters = [], [], [], []
+    for seed in EXPERIMENT_SEEDS:
+        model, seconds = train_model(data, seed=seed, **config)
+        vals.append(val_accuracy(model, data))
+        trains.append(accuracy_score(y_tr, model.predict(X_tr)))
+        times.append(seconds)
+        iters.append(model.n_iter_)
+    return {
+        "name": name,
+        "config": config,
+        "val_mean": float(np.mean(vals)),
+        "val_std": float(np.std(vals)),
+        "train_mean": float(np.mean(trains)),
+        "time": float(np.mean(times)),
+        "epochs": int(round(np.mean(iters))),
+    }
+
+
+def write_experiments_md(rows, best, path):
+    lines = [
+        "# Sprint 3 - Experiments (validation set)",
+        "",
+        f"Each row changes ONE thing from the baseline. Results are the mean of "
+        f"{len(EXPERIMENT_SEEDS)} runs with different random initializations "
+        f"(seeds {', '.join(map(str, EXPERIMENT_SEEDS))}).",
+        "",
+        "| # | Configuration | Val acc (mean ± std) | Train acc | Epochs | Time (s) |",
+        "|---|---|---|---|---|---|",
+    ]
+    for i, r in enumerate(rows, start=1):
+        mark = " **(best)**" if r is best else ""
+        lines.append(
+            f"| {i} | {r['name']}{mark} | {r['val_mean']:.2%} ± {r['val_std']:.2%} | "
+            f"{r['train_mean']:.2%} | {r['epochs']} | {r['time']:.1f} |"
+        )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mnist", action="store_true")
+    ap.add_argument(
+        "--final", action="store_true",
+        help="also evaluate the chosen model on the TEST set (do this once, at the very end)",
+    )
     args = ap.parse_args()
 
     RESULTS_DIR.mkdir(exist_ok=True)
@@ -178,11 +250,11 @@ def main():
     print(f"Dataset: {dataset_name}")
     print(f"Train: {len(X_tr)} | Validation: {len(X_val)} | Test: {len(X_te)}\n")
 
-    # the baseline on the validation set.
+    # Step 0 check: the baseline (same config as Sprint 2) on the validation set
     model, seconds = train_model(data)
     print(f"Baseline (64) -> val accuracy={val_accuracy(model, data):.4f}  time={seconds:.1f}s")
 
-    # TASK 1: training curves for the baseline.
+    # Task 1: training curves for the baseline
     _, history = train_with_history(data, hidden_layers=(64,), epochs=100)
     plot_training_curves(history, RESULTS_DIR / "training_curve.png", "Baseline (64)")
     best = int(np.argmax(history["val_acc"]))
@@ -193,10 +265,7 @@ def main():
     )
     print("Saved results/training_curve.png")
 
-    # TASK 2: confusion matrix of the baseline on the VALIDATION set (test stays locked).
-    # plot_confusion_matrix: draws the matrix.
-    # top_confusions: lists the most frequent mistakes.
-    # plot_errors: draws the images the model got wrong.
+    # Task 2: confusion matrix of the baseline on the VALIDATION set (test stays locked)
     y_val = data[4]
     y_pred = model.predict(X_val)
     plot_confusion_matrix(y_val, y_pred, RESULTS_DIR / "confusion_matrix.png", "Baseline (64) - validation")
@@ -208,6 +277,39 @@ def main():
     for real, pred, count in top_confusions(y_val, y_pred):
         print(f"  {real} -> {pred} : {count}")
     print("Saved results/confusion_matrix.png and results/wrong_examples.png")
+
+    # Task 3: experiments, compared on the VALIDATION set
+    print("\nTask 3 -> experiments (mean of 3 seeds, validation set)")
+    rows = []
+    for name, changes in EXPERIMENTS:
+        r = run_experiment(data, name, changes)
+        rows.append(r)
+        print(
+            f"  {name:<30} val={r['val_mean']:.4f} ± {r['val_std']:.4f}  "
+            f"train={r['train_mean']:.4f}  epochs={r['epochs']:<3}  time={r['time']:.1f}s"
+        )
+    best = max(rows, key=lambda r: r["val_mean"])  # chosen by validation, never by test
+    write_experiments_md(rows, best, RESULTS_DIR / "experiments.md")
+    print(f"\nBest by validation: {best['name']} (val={best['val_mean']:.4f})")
+    print("Saved results/experiments.md")
+
+    # Final model: the test set is touched only here, once, and only with --final
+    if args.final:
+        cfg = best["config"]
+        final_model, _ = train_model(data, **cfg)
+        X_te, y_te = data[2], data[5]
+        test_pred = final_model.predict(X_te)
+        test_acc = accuracy_score(y_te, test_pred)
+        print(f"\nFINAL (test set, used once) -> {best['name']}: test accuracy = {test_acc:.4f}")
+        _, final_hist = train_with_history(data, epochs=max(best["epochs"], 50), **cfg)
+        plot_training_curves(final_hist, RESULTS_DIR / "final_training_curve.png", best["name"])
+        plot_confusion_matrix(
+            y_te, test_pred, RESULTS_DIR / "final_confusion_matrix.png",
+            f"{best['name']} - test",
+        )
+        print("Saved results/final_training_curve.png and results/final_confusion_matrix.png")
+    else:
+        print("\n(Test set not used. Run with --final once you are done choosing.)")
 
 
 if __name__ == "__main__":

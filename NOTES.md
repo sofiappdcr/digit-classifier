@@ -69,3 +69,5 @@ predicted/real: 1/9 (twice); 5/6 (once); 4/8 (once); 7/2 (once); 5/8 (once); 0/4
 2. train high and validation well below-overfitting, meaning the model is memorizing.
 3. both low-the model is too simple or was trained too little.
 -_regularization_ is a defense against overfitting.
+
+# Sprint 4: READ ME + Writing Digits

@@ -32,10 +32,10 @@
 ->conclusion: noticeably, the neural network presented better results when comparing to the logistic regression.
 
 **What was learned:**
--Logistic Regression: it is a neural network with no hidden layers (ex of a hidden layer: one with 64 neurons that identifies curves and lines, in this case). it is fast to train, because it has few parameters. it is a linear function.
--ReLU (Rectified Linear Unit): it's a non-linear function used by neural networks.
--The hidden layer and the non-linearity presented by ReLU is what gives the neural network the hability to learn patterns that logistic regression can't.
--Expectation: neural network has better accuracy than logistic regression (better seen with the MNIST data set).
+- Logistic Regression: it is a neural network with no hidden layers (ex of a hidden layer: one with 64 neurons that identifies curves and lines, in this case). it is fast to train, because it has few parameters. it is a linear function.
+- ReLU (Rectified Linear Unit): it's a non-linear function used by neural networks.
+- The hidden layer and the non-linearity presented by ReLU is what gives the neural network the hability to learn patterns that logistic regression can't.
+- Expectation: neural network has better accuracy than logistic regression (better seen with the MNIST data set).
 
 ## Sprint 3: training curve plotting, confusion matrix and .
 **What was done:** 
@@ -58,16 +58,27 @@ predicted/real: 1/9 (twice); 5/6 (once); 4/8 (once); 7/2 (once); 5/8 (once); 0/4
 -> _two layers_ did not help. the problem is probably simple enough that one layer is plenty.
 -> _regularization_ had almost no effect.
 -> _every row reaches 100% train accuracy_ (except the slow one), so all of them overfit a little.
-->**Final Result**: the model chosen by validation was the one with 256 neurons. on the test set it got 97.78% (352/360, only 8 wrong).
+->_Final Result_: the model chosen by validation was the one with 256 neurons. on the test set it got 97.78% (352/360, only 8 wrong).
 
 **What was learned:**
--Each full pass over the training data is called an _epoch_.
--_loss_: measures how wrong the network is, even when it is right but not confident. it is what the network tries to minimize during training.
--_accuracy_: it is the % of correct predictions.
--train vs. validation on the chart:
+- Each full pass over the training data is called an _epoch_.
+- _loss_: measures how wrong the network is, even when it is right but not confident. it is what the network tries to minimize during training.
+- _accuracy_: it is the % of correct predictions.
+- train vs. validation on the chart:
 1. close together and high-the model learned and generalizes well.
 2. train high and validation well below-overfitting, meaning the model is memorizing.
 3. both low-the model is too simple or was trained too little.
--_regularization_ is a defense against overfitting.
+- _regularization_ is a defense against overfitting.
 
-# Sprint 4: READ ME + Writing Digits
+# Sprint 4: READ ME.
+
+**What was done:**
+- README was written with problem, approach, results (accuracy table, training curve, confusing matrix, misclassified examples), how to run and what was learned.
+- Added requirements.txt so the project can be installed on another machine.
+- Tested the project from a fresh clone, following only the README.
+
+**What was learned:**
+- A README is written for someone who has never seen the project, so it should lead with the main result and the steps to run it.
+- Results from different datasets/splits should not be mixed in one comparison (MNIST vs load_digits).
+- With a small test set (360 images), a difference of a few images is within noise.
+- A project should run on another machine: requirements.txt and a clean clone test catch missing dependencies.
